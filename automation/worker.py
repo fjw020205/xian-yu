@@ -36,6 +36,7 @@ class AutomationWorker(threading.Thread):
         self.commands = queue.Queue()
         self.playwright = None
         self.context = None
+        self.busy = False  # 界面据此判断是否有任务在执行
 
     def log(self, message):
         self.log_queue.put((self.label, message))
@@ -58,6 +59,7 @@ class AutomationWorker(threading.Thread):
                 if handler is None:
                     self.log(f"未知命令：{command}")
                     continue
+                self.busy = True
                 try:
                     handler(payload)
                 except PWTimeoutError as exc:
@@ -66,6 +68,8 @@ class AutomationWorker(threading.Thread):
                     self.log(f"浏览器操作失败：{exc}")
                 except Exception as exc:  # 保证线程不因异常退出
                     self.log(f"异常：{exc}")
+                finally:
+                    self.busy = False
         finally:
             self.close_browser()
             try:

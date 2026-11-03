@@ -1,0 +1,19 @@
+{
+  "output_dir": "data/news",
+  "max_articles": 20,
+  "delay_seconds": 1.5,
+  "sources": [
+    {
+      "name": "新浪体育首页",
+      "url": "https://sports.sina.com.cn/",
+      "enabled": true,
+      "wait_seconds": 2.0
+    },
+    {
+      "name": "新浪体育滚动新闻",
+      "url": "https://sports.sina.com.cn/roll/",
+      "enabled": true,
+      "wait_seconds": 4.0
+    }
+  ]
+}

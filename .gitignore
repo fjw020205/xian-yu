@@ -1,5 +1,7 @@
 .venv/
 browser_profile/
+news_profile/
+data/news/
 __pycache__/
 .screenshots/
 *.pyc

@@ -14,19 +14,21 @@ import queue
 import tkinter as tk
 from tkinter import ttk
 
-from automation.browser import PUBLISH_PROFILE_DIR
+from automation.browser import NEWS_PROFILE_DIR, PUBLISH_PROFILE_DIR
+from automation.tasks_news import NewsTask
 from automation.tasks_publish import PublishTask
 from automation.worker import AutomationWorker
-from ui.log_panel import LABEL_PUBLISH, LogPanel
+from ui.log_panel import LABEL_NEWS, LABEL_PUBLISH, LogPanel
+from ui.news_tab import NewsTab
 from ui.publish_tab import PublishTab
 
 
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("咸鱼自动上货助手")
-        self.geometry("780x700")
-        self.minsize(700, 600)
+        self.title("咸鱼自动上货 / 新浪体育资讯")
+        self.geometry("800x720")
+        self.minsize(720, 620)
 
         self.log_queue = queue.Queue()
 
@@ -36,9 +38,17 @@ class App(tk.Tk):
         self.publish_worker.handlers.update(PublishTask(self.publish_worker).handlers())
         self.publish_worker.start()
 
+        self.news_worker = AutomationWorker(
+            self.log_queue, LABEL_NEWS, profile_dir=NEWS_PROFILE_DIR, headless=True
+        )
+        self.news_worker.handlers.update(NewsTask(self.news_worker).handlers())
+        self.news_worker.start()
+
         self.notebook = ttk.Notebook(self)
         self.publish_tab = PublishTab(self.notebook, self.publish_worker)
+        self.news_tab = NewsTab(self.notebook, self.news_worker)
         self.notebook.add(self.publish_tab, text=" 上货 ")
+        self.notebook.add(self.news_tab, text=" 资讯抓取 ")
         self.notebook.pack(fill="x", padx=10, pady=(10, 0))
 
         self.log_panel = LogPanel(self)
@@ -54,10 +64,12 @@ class App(tk.Tk):
             except queue.Empty:
                 break
             self.log_panel.append(label, message)
+        self.news_tab.set_busy(self.news_worker.busy)
         self.after(100, self._drain_logs)
 
     def _on_close(self):
         self.publish_worker.submit("stop")
+        self.news_worker.submit("stop")
         self.destroy()
 
 
