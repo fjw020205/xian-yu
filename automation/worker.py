@@ -83,14 +83,25 @@ class AutomationWorker(threading.Thread):
         """首次调用时启动浏览器，之后复用上下文并跳转。返回当前页面。"""
         if self.context:
             page = self.active_page()
-            page.goto(url, wait_until="domcontentloaded", timeout=60000)
+            self._goto(page, url)
             return page
         self.context = launch_context(
             self.playwright, self.profile_dir, self.headless, self.log
         )
         page = self.active_page()
-        page.goto(url, wait_until="domcontentloaded", timeout=60000)
+        self._goto(page, url)
         return page
+
+    @staticmethod
+    def _goto(page, url):
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=60000)
+        except PWError:
+            # 目标页可能正在自行跳转（站内重定向），被打断后等它落地即可
+            try:
+                page.wait_for_load_state("domcontentloaded", timeout=15000)
+            except PWError:
+                raise
 
     def active_page(self, host=None):
         return active_page(self.context, host)

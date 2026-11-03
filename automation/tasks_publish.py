@@ -73,9 +73,8 @@ class PublishTask:
             self.log(f"图片不存在：{image}")
             return
 
-        page = self.worker.active_page("goofish.com")
         self.log("正在打开咸鱼首页...")
-        page.goto(HOME_URL, wait_until="domcontentloaded", timeout=60000)
+        page = self.worker.open_browser(HOME_URL)
         page.wait_for_timeout(1500)
 
         if not self._ensure_logged_in(page):
