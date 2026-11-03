@@ -65,6 +65,34 @@ DETAIL_JS = """() => {
 }"""
 
 
+DEFAULT_FALLBACK_CONFIG = {
+    "sources": [
+        {"name": "新浪体育首页", "url": "https://sports.sina.com.cn/", "wait_seconds": 2},
+        {"name": "新浪体育滚动新闻", "url": "https://sports.sina.com.cn/roll/", "wait_seconds": 4},
+    ],
+    "max_articles": 20,
+    "delay_seconds": 1.5,
+    "schedule": {"enabled": False, "time": "08:30"},
+}
+
+
+def load_config(path=None):
+    """读取配置；文件不存在时返回内置默认来源。"""
+    path = Path(path) if path else DEFAULT_CONFIG
+    if not path.is_file():
+        return dict(DEFAULT_FALLBACK_CONFIG)
+    with path.open("r", encoding="utf-8-sig") as handle:
+        return json.load(handle)
+
+
+def save_config(config, path=None):
+    """写回配置（UTF-8 无 BOM，保证 json.load 可直接读取）。"""
+    path = Path(path) if path else DEFAULT_CONFIG
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        json.dump(config, handle, ensure_ascii=False, indent=2)
+
+
 class NewsTask:
     """资讯抓取任务，命令名 fetch。"""
 
@@ -229,16 +257,12 @@ class NewsTask:
     def _load_config(self):
         if not self.config_path.is_file():
             self.log(f"未找到配置文件 {self.config_path}，使用内置默认来源")
-            return {
-                "sources": [
-                    {"name": "新浪体育首页", "url": "https://sports.sina.com.cn/", "wait_seconds": 2},
-                    {"name": "新浪体育滚动新闻", "url": "https://sports.sina.com.cn/roll/", "wait_seconds": 4},
-                ],
-                "max_articles": 20,
-                "delay_seconds": 1.5,
-            }
-        with self.config_path.open("r", encoding="utf-8-sig") as handle:
-            return json.load(handle)
+            return dict(DEFAULT_FALLBACK_CONFIG)
+        try:
+            return load_config(self.config_path)
+        except json.JSONDecodeError as exc:
+            self.log(f"配置文件格式有误，改用内置默认来源：{exc}")
+            return dict(DEFAULT_FALLBACK_CONFIG)
 
     def _finish_browser(self):
         self.worker.close_browser()

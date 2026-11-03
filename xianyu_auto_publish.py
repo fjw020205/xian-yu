@@ -10,7 +10,9 @@
 界面组件在 ui/ 包内。使用本机已安装的 Chrome / Edge（channel 方式启动，不下载浏览器）。
 """
 
+import argparse
 import queue
+import time
 import tkinter as tk
 from tkinter import ttk
 
@@ -54,6 +56,7 @@ class App(tk.Tk):
         self.log_panel = LogPanel(self)
         self.log_panel.pack(fill="both", expand=True, padx=10, pady=(8, 10))
 
+        self._closing = False
         self.after(100, self._drain_logs)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
@@ -68,14 +71,67 @@ class App(tk.Tk):
         self.after(100, self._drain_logs)
 
     def _on_close(self):
+        if self._closing:
+            return
+        self._closing = True
+        self.news_tab.stop_timer()
         self.publish_worker.submit("stop")
         self.news_worker.submit("stop")
-        self.destroy()
+        try:
+            self.destroy()
+        except tk.TclError:
+            # 在 Tk 回调内销毁时，Tkinter 会重复删除自身命令，属收尾噪音
+            pass
+        self.quit()
+
+
+def run_news_job(max_articles=None):
+    """无窗口执行一次资讯抓取，供 Windows 计划任务调用。"""
+    logs = queue.Queue()
+    worker = AutomationWorker(
+        logs, LABEL_NEWS, profile_dir=NEWS_PROFILE_DIR, headless=True
+    )
+    worker.handlers.update(NewsTask(worker).handlers())
+    worker.start()
+    worker.submit("fetch", {"max_articles": max_articles} if max_articles else {})
+
+    started = False
+    deadline = time.time() + 900
+    while time.time() < deadline:
+        try:
+            label, message = logs.get(timeout=0.2)
+            print(f"[{time.strftime('%H:%M:%S')}] [{label}] {message}", flush=True)
+            continue
+        except queue.Empty:
+            pass
+        if worker.busy:
+            started = True
+        elif started:
+            break
+    else:
+        print("抓取超过 15 分钟仍未结束，已中止", flush=True)
+
+    worker.submit("stop")
+    worker.join(timeout=10)
+    return 0
 
 
 def main():
+    parser = argparse.ArgumentParser(description="咸鱼自动上货 / 新浪体育资讯抓取")
+    parser.add_argument(
+        "--job", choices=("news",), help="无窗口执行一次资讯抓取（供 Windows 计划任务使用）"
+    )
+    parser.add_argument(
+        "--max-articles", type=int, default=None, help="配合 --job news 指定单次抓取上限"
+    )
+    args = parser.parse_args()
+
+    if args.job == "news":
+        return run_news_job(args.max_articles)
+
     app = App()
     app.mainloop()
+    return 0
 
 
 if __name__ == "__main__":

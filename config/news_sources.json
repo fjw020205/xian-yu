@@ -2,6 +2,10 @@
   "output_dir": "data/news",
   "max_articles": 20,
   "delay_seconds": 1.5,
+  "schedule": {
+    "enabled": false,
+    "time": "08:30"
+  },
   "sources": [
     {
       "name": "新浪体育首页",
