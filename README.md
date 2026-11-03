@@ -87,7 +87,8 @@ schtasks /Create /TN "SinaSportsNews" /TR "\"C:\path\to\xianyu_auto_publish.py �
 │   └── news_tab.py            # 资讯 Tab（含定时）
 ├── config/news_sources.json   # 资讯来源、单次上限、间隔、定时设置
 ├── data/news/                 # 运行时生成：按天 JSON（勿提交）
-├── 发布页元素定位.md           # 发布页真实 DOM 与元素定位说明
+├── 发布页元素定位.md           # 闲鱼发布页真实 DOM 与元素定位说明
+├── 新浪体育元素定位.md         # 新浪体育列表/详情页元素定位说明
 ├── 1.jpg                      # 默认首图示例
 ├── README.md
 ├── TEST_REPORT.md
