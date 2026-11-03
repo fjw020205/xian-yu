@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """咸鱼自动上货助手（Tkinter + Playwright）
 
 流程：
